@@ -1461,7 +1461,8 @@ class App {
             this.currentUser = {
                 account: account,
                 nickname: nickname,
-                vip: false,
+                vip: true,
+                vipPlan: 'lifetime',
                 registerTime: new Date().toISOString()
             };
             this.saveUserToStorage();
@@ -1481,7 +1482,8 @@ class App {
                 this.currentUser = {
                     account: account,
                     nickname: account.replace(/[@\d]/g, '').substring(0, 8) || '用户' + account.substring(0, 4),
-                    vip: false,
+                    vip: true,
+                    vipPlan: 'lifetime',
                     registerTime: new Date().toISOString()
                 };
                 this.saveUserToStorage();
@@ -1558,19 +1560,26 @@ class App {
     }
 
     handleVipSubscribe() {
+        // 没有登录时，自动创建一个游客 VIP 用户
         if (!this.currentUser) {
-            this.closeVipModal();
-            this.showToast('请先登录');
-            this.openLoginModal();
-            return;
+            this.currentUser = {
+                account: 'guest',
+                nickname: '游客',
+                vip: true,
+                vipPlan: this.selectedVipPlan || 'lifetime',
+                registerTime: new Date().toISOString()
+            };
+        } else {
+            this.currentUser.vip = true;
+            this.currentUser.vipPlan = this.selectedVipPlan || 'lifetime';
         }
-        const planNames = { monthly: '月度会员', yearly: '年度会员', lifetime: '终身会员' };
-        this.currentUser.vip = true;
-        this.currentUser.vipPlan = this.selectedVipPlan;
+
         this.saveUserToStorage();
         this.updateLoginUI();
         this.closeVipModal();
-        this.showToast(`恭喜开通${planNames[this.selectedVipPlan] || 'VIP'}！`);
+
+        const planNames = { monthly: '月度会员', yearly: '年度会员', lifetime: '终身会员' };
+        this.showToast(`已开通${planNames[this.currentUser.vipPlan] || 'VIP'}！`);
     }
 
     /* ========== 团队管理 ========== */
