@@ -33,10 +33,13 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
 
       - name: Install Android SDK Components
         run: |
-          echo "y" | sdkmanager "platforms;android-34" "build-tools;34.0.0" "ndk;26.1.10909125"
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "platforms;android-34" "build-tools;34.0.0" "ndk;26.1.10909125"
 
       - name: Install dependencies
         run: npm install
@@ -52,7 +55,12 @@ jobs:
           echo "Web assets prepared in www/"
 
       - name: Add Android platform
-        run: npx cap add android || true
+        run: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          else
+            echo "Android platform already exists, skipping cap add."
+          fi
 
       - name: Sync Android project
         run: npx cap sync android
@@ -87,7 +95,6 @@ jobs:
         run: |
           BUILD_GRADLE=android/app/build.gradle
           if [ -f "$BUILD_GRADLE" ]; then
-            # Add release build type with debug signing if not present
             if ! grep -q "signingConfig signingConfigs.debug" "$BUILD_GRADLE"; then
               sed -i '/buildTypes {/a \
                       release {\
