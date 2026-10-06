@@ -19,7 +19,8 @@ class WatermarkManager {
             useCustomLocation: false,
             useCustomText: false,
             brandEnabled: true,
-            antiFakeEnabled: true
+            antiFakeEnabled: true,
+            showCoords: false   // 新增：是否显示经纬度
         };
 
         this.currentAntiFakeCode = '';
@@ -163,6 +164,41 @@ class WatermarkManager {
     }
 
     /**
+     * 格式化经纬度字符串
+     * 输入 "39.9042,116.4074" → 输出 "39.904200, 116.407400"
+     */
+    formatCoords(coords) {
+        if (!coords) return '';
+        const parts = String(coords).split(',');
+        if (parts.length < 2) return '';
+        const lat = parseFloat(parts[0]);
+        const lon = parseFloat(parts[1]);
+        if (isNaN(lat) || isNaN(lon)) return '';
+        return `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+    }
+
+    /**
+     * 统一拼装位置文字
+     * 如果开启 showCoords 且有坐标，则在位置文字后追加经纬度
+     */
+    getLocationText(location) {
+        if (!location) return '';
+        const baseText = location.full
+            || `${location.province || ''}${location.city || ''}${location.address || ''}`.trim();
+
+        if (this.config.showCoords && location.coords) {
+            const coordText = this.formatCoords(location.coords);
+            if (coordText) {
+                if (baseText) {
+                    return `${baseText}  (${coordText})`;
+                }
+                return `(${coordText})`;
+            }
+        }
+        return baseText;
+    }
+
+    /**
      * 生成水印HTML
      */
     generateWatermarkHTML() {
@@ -205,8 +241,8 @@ class WatermarkManager {
             html += `<div class="wm-weather">${timeData.weekDay}</div>`;
         }
         
-        // 第三行：地点
-        const locText = location.full || `${location.province}${location.city}${location.address}`;
+        // 第三行：地点（含可选的经纬度）
+        const locText = this.getLocationText(location);
         if (locText) {
             html += `<div class="wm-location">${this.locationIcon}${locText}</div>`;
         }
@@ -247,7 +283,7 @@ class WatermarkManager {
             html += `<div class="wm-weather">${timeData.weekDay} ${weather}</div>`;
         }
         
-        const locText = location.full || `${location.province}${location.city}`;
+        const locText = this.getLocationText(location);
         if (locText) {
             html += `<div class="wm-location">${locText}</div>`;
         }
@@ -270,7 +306,7 @@ class WatermarkManager {
             html += `<div class="wm-weather">${timeData.weekDay} ${weather}</div>`;
         }
         
-        const locText = location.full || `${location.province}${location.city}${location.address}`;
+        const locText = this.getLocationText(location);
         if (locText) {
             html += `<div class="wm-location">${this.locationIcon}${locText}</div>`;
         }
@@ -558,8 +594,8 @@ class WatermarkManager {
         ctx.fillText(weatherText, x, y);
         y += weatherFontSize + 6 * (w / 1080);
 
-        // === 第三行（底部）：地点（缩小字体，放在天气下方）===
-        const locText = location.full || `${location.province}${location.city}${location.address}`;
+        // === 第三行（底部）：地点（含可选的经纬度）===
+        const locText = this.getLocationText(location);
         if (locText) {
             ctx.font = `${locFontSize}px -apple-system, sans-serif`;
             ctx.fillStyle = 'rgba(255,255,255,0.75)';
@@ -660,7 +696,7 @@ class WatermarkManager {
             y += 20 * scale * (w / 1080);
         }
 
-        const locText = location.full || `${location.province}${location.city}`;
+        const locText = this.getLocationText(location);
         if (locText) {
             ctx.font = `${13 * scale * (w / 1080)}px -apple-system, sans-serif`;
             ctx.fillStyle = 'rgba(255,255,255,0.75)';
@@ -703,7 +739,7 @@ class WatermarkManager {
             y += 24 * scale * (w / 1080);
         }
 
-        const locText = location.full || `${location.province}${location.city}${location.address}`;
+        const locText = this.getLocationText(location);
         if (locText) {
             ctx.font = `${13 * scale * (w / 1080)}px -apple-system, sans-serif`;
             ctx.fillStyle = 'rgba(255,255,255,0.75)';
